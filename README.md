@@ -2,7 +2,7 @@
 
 Customer analytics for a UK-based online gift retailer (Dec 2010 - Dec 2011): data cleaning, EDA, RFM analysis, customer segmentation, and an interactive Streamlit dashboard.
 
-**Live dashboard:** _add the Streamlit link here after deployment_
+**Live dashboard:** [omar-retail-analytics.streamlit.app](https://omar-retail-analytics.streamlit.app/)
 
 ## Key results
 
@@ -24,14 +24,17 @@ Customer analytics for a UK-based online gift retailer (Dec 2010 - Dec 2011): da
 ```
 data/        clean_transactions.parquet, customer_rfm.parquet, customer_segments.parquet
 notebooks/   01_cleaning_eda.ipynb, 02_rfm.ipynb, 03_clustering.ipynb
-src/         cleaning.py, rfm.py, segments.py
+src/         cleaning.py, rfm.py, segments.py, data.py, ui.py
+views/       dashboard pages (overview, segments, customers, rfm, key accounts, business, methodology)
 reports/     final PDF summary
 app.py       Streamlit dashboard
 ```
 
 ## How to reproduce
 
-1. Use Python 3.10 and install dependencies: `pip install -r requirements.txt`
+1. Use Python 3.10 and install dependencies:
+   - Dashboard only: `pip install -r requirements.txt`
+   - Notebooks: `pip install -r requirements-notebooks.txt`
 2. Download the Online Retail dataset (UCI / Kaggle) and place `Online Retail.xlsx` in `data/`. It is not included in the repo.
 3. Run the notebooks in order. Each saves a file in `data/` that the next one reads:
    - `01_cleaning_eda.ipynb` (sections 1-7) saves `clean_transactions.parquet`
