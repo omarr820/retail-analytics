@@ -54,6 +54,17 @@ def _share_chart(seg: pd.DataFrame) -> None:
         f"{ui.pct(top['customer_share'])} of customers.")
 
 
+# Plotly hovertemplates use "%{...}" placeholders, which clash with Python's
+# "%" string formatting (that caused: ValueError: unsupported format character '{').
+# So the segment name is inserted by plain concatenation instead.
+_HOVER_BODY = ("<b>%{customdata[0]}</b><br>Recency: %{customdata[1]:,.0f} days<br>"
+               "Orders: %{customdata[2]:,.0f}<br>Net revenue: £%{customdata[3]:,.0f}")
+
+
+def _hover(name: str) -> str:
+    return _HOVER_BODY + "<extra>" + name + "</extra>"
+
+
 def _scatter3d(view: pd.DataFrame) -> None:
     plot = view.assign(
         lr=np.log1p(view["recency"]),
@@ -61,9 +72,6 @@ def _scatter3d(view: pd.DataFrame) -> None:
         lm=np.log1p(view["monetary"]),
     )
     cols = ["CustomerID", "recency", "frequency", "monetary"]
-    hover = ("<b>%{customdata[0]}</b><br>Recency: %{customdata[1]:,.0f} days<br>"
-             "Orders: %{customdata[2]:,.0f}<br>Net revenue: £%{customdata[3]:,.0f}"
-             "<extra>%s</extra>")
     fig = go.Figure()
     for s in ui.SEGMENTS:
         d = plot[(plot["segment"].astype(str) == s) & ~plot["is_outlier"]]
@@ -71,13 +79,13 @@ def _scatter3d(view: pd.DataFrame) -> None:
             continue
         fig.add_trace(go.Scatter3d(
             x=d["lr"], y=d["lf"], z=d["lm"], mode="markers", name=s,
-            customdata=d[cols].to_numpy(), hovertemplate=hover % s,
+            customdata=d[cols].to_numpy(), hovertemplate=_hover(s),
             marker=dict(size=3, color=ui.SEGMENT_COLORS[s], opacity=0.75)))
     ko = plot[plot["is_outlier"]]
     if not ko.empty:
         fig.add_trace(go.Scatter3d(
             x=ko["lr"], y=ko["lf"], z=ko["lm"], mode="markers", name="Key accounts",
-            customdata=ko[cols].to_numpy(), hovertemplate=hover % "Key account",
+            customdata=ko[cols].to_numpy(), hovertemplate=_hover("Key account"),
             marker=dict(size=6, symbol="diamond", color="#FFFFFF",
                         line=dict(color="#111827", width=2))))
     ui.style_fig(fig, "Customers in log space (log1p of recency, orders, revenue)", height=560)
@@ -137,8 +145,8 @@ def _compare(view: pd.DataFrame) -> None:
     if a == b:
         st.info("Pick two different segments.")
         return
-    seg = data.segment_summary(view).set_index(
-        data.segment_summary(view)["segment"].astype(str))
+    summary = data.segment_summary(view)
+    seg = summary.set_index(summary["segment"].astype(str))
     metrics = [
         ("Customers", "customers", ui.num),
         ("Share of customers", "customer_share", ui.pct),
