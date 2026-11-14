@@ -1,0 +1,9 @@
+pandas
+numpy
+plotly
+scikit-learn
+scipy
+streamlit
+pyarrow
+openpyxl
+jupyter
