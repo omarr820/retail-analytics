@@ -19,39 +19,42 @@ def _detail(df_all: pd.DataFrame, cid: str) -> None:
         return
     r = row.iloc[0]
     seg = str(r["segment"])
-    st.subheader(f"Customer {cid}")
+    ui.section(f"Customer {cid}", seg)
+    seg_color = ui.SEGMENT_COLORS[seg]
     ui.kpi_row([
         ("Segment", seg, "Key account" if r["is_outlier"] else "Regular customer"),
         ("RFM string", str(r["RFM_Score"]), f"RFM sum {int(r['RFM_Sum'])}"),
         ("Recency", f"{r['recency']:,.0f} days", f"last order {r['last_purchase']:%Y-%m-%d}"),
-    ], per_row=3)
+    ], per_row=3, colors=[seg_color, ui.TEAL, ui.TERRA])
     ui.kpi_row([
         ("Orders", ui.num(r["frequency"]), f"avg order {ui.gbp(r['avg_order_value'])}"),
         ("Net revenue", ui.gbp(r["monetary"]), f"cancelled value {ui.gbp(abs(r['cancelled_value']))}"),
         ("Tenure", f"{r['tenure_days']:,.0f} days", f"first order {r['first_purchase']:%Y-%m-%d}"),
-    ], per_row=3)
+    ], per_row=3, colors=[ui.SAFFRON, ui.SAGE, ui.ACCENT])
 
     labels = ["Recency (more recent = higher)", "Frequency", "Monetary"]
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=labels, x=[r["pct_recency"], r["pct_frequency"], r["pct_monetary"]],
-        orientation="h", name="All customers", marker_color=ui.NEUTRAL))
-    fig.add_trace(go.Bar(
-        y=labels, x=[r["seg_pct_recency"], r["seg_pct_frequency"], r["seg_pct_monetary"]],
-        orientation="h", name=f"Within {seg}", marker_color=ui.SEGMENT_COLORS[seg]))
-    fig.add_vline(x=50, line_dash="dash", line_color=ui.NEUTRAL)
-    ui.style_fig(fig, "Percentile rank versus all customers and within the segment", height=320)
-    fig.update_layout(barmode="group")
-    fig.update_xaxes(title="Percentile (0-100)", range=[0, 100])
-    ui.show(fig, key="cust_pct")
-    ui.takeaway(
-        f"Net revenue is higher than {r['pct_monetary']:.0f}% of all customers and "
-        f"{r['seg_pct_monetary']:.0f}% of {seg} customers.")
+    with ui.card():
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=labels, x=[r["pct_recency"], r["pct_frequency"], r["pct_monetary"]],
+            orientation="h", name="All customers", marker_color=ui.NEUTRAL))
+        fig.add_trace(go.Bar(
+            y=labels, x=[r["seg_pct_recency"], r["seg_pct_frequency"], r["seg_pct_monetary"]],
+            orientation="h", name=f"Within {seg}", marker_color=seg_color))
+        fig.add_vline(x=50, line_dash="dash", line_color=ui.MAUVE)
+        ui.style_fig(fig, "Percentile rank versus all customers and within the segment", height=320)
+        fig.update_layout(barmode="group")
+        fig.update_xaxes(title="Percentile (0-100)", range=[0, 100])
+        ui.show(fig, key="cust_pct")
+        ui.takeaway(
+            f"Net revenue is higher than {r['pct_monetary']:.0f}% of all customers and "
+            f"{r['seg_pct_monetary']:.0f}% of {seg} customers.")
 
 
 def render() -> None:
     df_all, view = data.get_view()
-    ui.page_header("Customers", "Search the customer table and open a single-customer view.")
+    ui.page_header("Customers", "Search the customer table and open a single-customer view.",
+                   eyebrow="Customers")
     if view.empty:
         ui.empty_state()
         return

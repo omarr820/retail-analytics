@@ -37,8 +37,9 @@ def render_sidebar(df) -> None:
     mon_options = data.monetary_options(df)
 
     with st.sidebar:
+        ui.sidebar_brand()
         counter = st.container()
-        st.markdown("**Filters**")
+        ui.side_label("Filters")
         st.multiselect(
             "Segments", ui.SEGMENTS, key=data.K_SEG,
             help="Show only customers in the selected segments.",
@@ -47,22 +48,23 @@ def render_sidebar(df) -> None:
             "Country", ["All", "UK", "Non-UK"], key=data.K_COUNTRY, horizontal=True,
             help="UK = customers whose country is United Kingdom.",
         )
-        st.slider(
-            "Recency (days since last order)",
-            int(df["recency"].min()), int(df["recency"].max()), key=data.K_REC,
-            help="Lower = bought more recently (snapshot date 2011-12-10).",
-        )
-        st.slider(
-            "Frequency (number of invoices)",
-            int(df["frequency"].min()), int(df["frequency"].max()), key=data.K_FREQ,
-            help="Unique sales invoices per customer.",
-        )
-        st.select_slider(
-            "Monetary (net revenue, GBP)", options=mon_options,
-            value=st.session_state[data.K_MON], key=data.K_MON,
-            format_func=ui.gbp,
-            help="Steps follow customer percentiles because revenue is very skewed.",
-        )
+        with st.expander("RFM ranges", expanded=False):
+            st.slider(
+                "Recency (days since last order)",
+                int(df["recency"].min()), int(df["recency"].max()), key=data.K_REC,
+                help="Lower = bought more recently (snapshot date 2011-12-10).",
+            )
+            st.slider(
+                "Frequency (number of invoices)",
+                int(df["frequency"].min()), int(df["frequency"].max()), key=data.K_FREQ,
+                help="Unique sales invoices per customer.",
+            )
+            st.select_slider(
+                "Monetary (net revenue, GBP)", options=mon_options,
+                value=st.session_state[data.K_MON], key=data.K_MON,
+                format_func=ui.gbp,
+                help="Steps follow customer percentiles because revenue is very skewed.",
+            )
         st.toggle(
             "Include key accounts", key=data.K_OUT,
             help="Key accounts are the DBSCAN outliers. The Key Accounts page ignores this toggle.",
@@ -73,7 +75,7 @@ def render_sidebar(df) -> None:
         view = data.apply_filters(df, st.session_state)
         counter.markdown(
             ui.kpi_card("Customers in view", f"{len(view):,}",
-                        f"of {len(df):,} registered customers"),
+                        f"of {len(df):,} registered customers", ui.TERRA),
             unsafe_allow_html=True,
         )
         if not data.transactions_available():
@@ -93,9 +95,15 @@ except data.DataError as exc:
 
 render_sidebar(customers_df)
 
-pages = [
+explore = [
     st.Page(overview.render, title="Overview", icon=":material/dashboard:",
             url_path="overview", default=True),
+]
+if data.transactions_available():
+    explore.append(st.Page(business.render, title="Business Overview",
+                           icon=":material/storefront:", url_path="business"))
+
+customer_pages = [
     st.Page(segments_page.render, title="Segments", icon=":material/groups:",
             url_path="segments"),
     st.Page(customers.render, title="Customers", icon=":material/person_search:",
@@ -104,11 +112,11 @@ pages = [
     st.Page(key_accounts.render, title="Key Accounts", icon=":material/key:",
             url_path="key-accounts"),
 ]
-if data.transactions_available():
-    pages.append(st.Page(business.render, title="Business Overview",
-                         icon=":material/storefront:", url_path="business"))
-pages.append(st.Page(methodology.render, title="Methodology",
-                     icon=":material/menu_book:", url_path="methodology"))
 
-st.navigation(pages).run()
+about = [
+    st.Page(methodology.render, title="Methodology", icon=":material/menu_book:",
+            url_path="methodology"),
+]
+
+st.navigation({"Explore": explore, "Customers": customer_pages, "About": about}).run()
 ui.footer()

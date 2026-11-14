@@ -25,7 +25,7 @@ def _profile_cards(seg: pd.DataFrame) -> None:
             ]
             col.markdown(
                 ui.segment_card(name, ui.SEGMENT_COLORS[name], stats,
-                                ui.SEGMENT_ACTIONS.get(name)),
+                                ui.SEGMENT_ACTIONS.get(name), share=r["revenue_share"]),
                 unsafe_allow_html=True)
 
 
@@ -80,14 +80,14 @@ def _scatter3d(view: pd.DataFrame) -> None:
         fig.add_trace(go.Scatter3d(
             x=d["lr"], y=d["lf"], z=d["lm"], mode="markers", name=s,
             customdata=d[cols].to_numpy(), hovertemplate=_hover(s),
-            marker=dict(size=3, color=ui.SEGMENT_COLORS[s], opacity=0.75)))
+            marker=dict(size=3, color=ui.SEGMENT_COLORS[s], opacity=0.8)))
     ko = plot[plot["is_outlier"]]
     if not ko.empty:
         fig.add_trace(go.Scatter3d(
             x=ko["lr"], y=ko["lf"], z=ko["lm"], mode="markers", name="Key accounts",
             customdata=ko[cols].to_numpy(), hovertemplate=_hover("Key account"),
-            marker=dict(size=6, symbol="diamond", color="#FFFFFF",
-                        line=dict(color="#111827", width=2))))
+            marker=dict(size=6, symbol="diamond", color=ui.PLUM,
+                        line=dict(color="#FFFFFF", width=2))))
     ui.style_fig(fig, "Customers in log space (log1p of recency, orders, revenue)", height=560)
     fig.update_layout(scene=dict(
         xaxis_title="log(1 + recency days)",
@@ -95,7 +95,7 @@ def _scatter3d(view: pd.DataFrame) -> None:
         zaxis_title="log(1 + net revenue GBP)"))
     ui.show(fig, key="seg_3d")
     ui.takeaway(
-        "Each point is a customer; diamonds are key accounts. Segments overlap at the "
+        "Each point is a customer; dark diamonds are key accounts. Segments overlap at the "
         "edges, which is why the borders between segments are soft.")
 
 
@@ -126,7 +126,7 @@ def _radar(seg: pd.DataFrame) -> None:
     ui.style_fig(fig, "Segment comparison (medians, min-max normalized)", height=460)
     fig.update_layout(polar=dict(
         bgcolor="rgba(0,0,0,0)",
-        radialaxis=dict(range=[0, 1], showticklabels=False, gridcolor="rgba(128,128,128,0.3)")))
+        radialaxis=dict(range=[0, 1], showticklabels=False, gridcolor="rgba(52,25,58,0.15)")))
     ui.show(fig, key="seg_radar")
     best = seg.sort_values("median_monetary", ascending=False).iloc[0]
     fresh = seg.sort_values("median_recency").iloc[0]
@@ -172,7 +172,8 @@ def _compare(view: pd.DataFrame) -> None:
 
 def render() -> None:
     _, view = data.get_view()
-    ui.page_header("Segments", "Profiles, comparisons, and suggested actions for each segment.")
+    ui.page_header("Segments", "Profiles, comparisons, and suggested actions for each segment.",
+                   eyebrow="Customers")
     if view.empty:
         ui.empty_state()
         return
@@ -206,9 +207,13 @@ def render() -> None:
             st.caption("Suggested actions are hypotheses to test (for example with an A/B test), not proven effects.")
 
     with tab_chart:
-        _share_chart(seg)
-        _scatter3d(view)
-        _radar(seg)
+        with ui.card():
+            _share_chart(seg)
+        with ui.card():
+            _scatter3d(view)
+        with ui.card():
+            _radar(seg)
 
     with tab_cmp:
-        _compare(view)
+        with ui.card():
+            _compare(view)
